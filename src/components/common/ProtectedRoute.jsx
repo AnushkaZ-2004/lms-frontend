@@ -3,7 +3,7 @@ import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from './LoadingSpinner';
 
-const ProtectedRoute = ({ children }) => {
+export const ProtectedRoute = ({ children }) => {  // ✅ Named export
     const { isAuthenticated, loading } = useAuth();
 
     if (loading) {
@@ -21,4 +21,4 @@ const ProtectedRoute = ({ children }) => {
     return children;
 };
 
-export default ProtectedRoute;
+export default ProtectedRoute;  // ✅ Also keep default export

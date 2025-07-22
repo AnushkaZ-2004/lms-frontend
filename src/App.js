@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { AppProvider } from './context/AppContext';
-import { ProtectedRoute } from './components/common/ProtectedRoute';
+import ProtectedRoute from './components/common/ProtectedRoute';
 import Login from './pages/auth/Login';
 import Layout from './components/common/Layout';
 import Dashboard from './pages/dashboard/Dashboard';

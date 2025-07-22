@@ -203,23 +203,12 @@ const Login = () => {
                             </button>
                         </div>
                     </form>
-
-                    {/* Demo Credentials */}
-                    <div className="mt-6 pt-6 border-t border-gray-200">
-                        <div className="text-sm text-gray-600">
-                            <p className="font-medium mb-2">Demo Credentials:</p>
-                            <div className="bg-gray-50 p-3 rounded-md space-y-1">
-                                <p><span className="font-medium">Admin:</span> admin@lms.com / admin123</p>
-                                <p><span className="font-medium">Lecturer:</span> lecturer@lms.com / lecturer123</p>
-                            </div>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Footer */}
                 <div className="text-center">
                     <p className="text-sm text-gray-600">
-                        © 2024 Learning Management System. All rights reserved.
+                        © 2025 Learning Management System. All rights reserved.
                     </p>
                 </div>
             </div>

@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Users, GraduationCap, BookOpen, FileText } from 'lucide-react';
 import DashboardCharts from '../../components/charts/DashboardCharts';
-import { studentService } from '../../services/studentService';
-import { lecturerService } from '../../services/lecturerService';
-import { courseService } from '../../services/courseService';
-import { submissionService } from '../../services/submissionService';
+// Comment out real services for now
+// import { studentService } from '../../services/studentService';
 
 const Dashboard = () => {
     const [stats, setStats] = useState({
@@ -18,19 +16,33 @@ const Dashboard = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [students, lecturers, courses, submissions] = await Promise.all([
-                    studentService.getAllStudents(0, 1),
-                    lecturerService.getAllLecturers(0, 1),
-                    courseService.getAllCourses(0, 1),
-                    submissionService.getAllSubmissions(0, 1)
-                ]);
+                setLoading(true);
 
+                // TEMPORARY: Use mock data instead of real API calls
+                const mockStats = {
+                    totalStudents: 156,
+                    totalLecturers: 23,
+                    totalCourses: 45,
+                    totalSubmissions: 89
+                };
+
+                setStats(mockStats);
+
+                /* COMMENT OUT REAL API CALLS FOR NOW:
+                const [students, lecturers, courses, submissions] = await Promise.all([
+                  studentService.getAllStudents(0, 1),
+                  lecturerService.getAllLecturers(0, 1),
+                  courseService.getAllCourses(0, 1),
+                  submissionService.getAllSubmissions(0, 1)
+                ]);
+        
                 setStats({
-                    totalStudents: students.totalElements || 0,
-                    totalLecturers: lecturers.totalElements || 0,
-                    totalCourses: courses.totalElements || 0,
-                    totalSubmissions: submissions.totalElements || 0
+                  totalStudents: students.totalElements || 0,
+                  totalLecturers: lecturers.totalElements || 0,
+                  totalCourses: courses.totalElements || 0,
+                  totalSubmissions: submissions.totalElements || 0
                 });
+                */
             } catch (error) {
                 console.error('Error fetching dashboard stats:', error);
             } finally {
@@ -41,6 +53,7 @@ const Dashboard = () => {
         fetchStats();
     }, []);
 
+    // Rest of your component code stays the same...
     const statCards = [
         {
             title: 'Total Students',
