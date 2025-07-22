@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Edit, Mail, User, Calendar, FileText, Trophy } from 'lucide-react';
 import { studentService } from '../../services/studentService';
-import { submissionService } from '../../services/submissionService';
-import { quizService } from '../../services/quizService';
+// Comment out services that aren't ready yet
+// import { submissionService } from '../../services/submissionService';
+// import { quizService } from '../../services/quizService';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import Modal from '../../components/common/Modal';
 import StudentForm from '../../components/forms/StudentForm';
@@ -22,6 +23,16 @@ const StudentDetails = () => {
         const fetchStudentData = async () => {
             try {
                 setLoading(true);
+
+                // Only fetch student data for now
+                const studentData = await studentService.getStudentById(id);
+                setStudent(studentData);
+
+                // Mock data for other services until they're ready
+                setSubmissions([]); // Will be empty until submission service is ready
+                setQuizAttempts([]); // Will be empty until quiz service is ready
+
+                /* COMMENTED OUT UNTIL OTHER SERVICES ARE READY:
                 const [studentData, submissionsData, attemptsData] = await Promise.all([
                     studentService.getStudentById(id),
                     submissionService.getSubmissionsByStudent(id),
@@ -31,6 +42,7 @@ const StudentDetails = () => {
                 setStudent(studentData);
                 setSubmissions(submissionsData);
                 setQuizAttempts(attemptsData);
+                */
             } catch (error) {
                 console.error('Error fetching student data:', error);
             } finally {
@@ -148,8 +160,8 @@ const StudentDetails = () => {
                                 key={tab.id}
                                 onClick={() => setActiveTab(tab.id)}
                                 className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${activeTab === tab.id
-                                        ? 'border-primary-500 text-primary-600'
-                                        : 'border-transparent text-gray-500 hover:text-gray-700'
+                                    ? 'border-primary-500 text-primary-600'
+                                    : 'border-transparent text-gray-500 hover:text-gray-700'
                                     }`}
                             >
                                 <tab.icon className="w-4 h-4" />
@@ -165,86 +177,38 @@ const StudentDetails = () => {
                             <div className="bg-blue-50 p-4 rounded-lg">
                                 <h3 className="font-semibold text-blue-900">Total Submissions</h3>
                                 <p className="text-2xl font-bold text-blue-600">{submissions.length}</p>
+                                <p className="text-xs text-gray-500 mt-1">Submission service not active</p>
                             </div>
                             <div className="bg-green-50 p-4 rounded-lg">
                                 <h3 className="font-semibold text-green-900">Quiz Attempts</h3>
                                 <p className="text-2xl font-bold text-green-600">{quizAttempts.length}</p>
+                                <p className="text-xs text-gray-500 mt-1">Quiz service not active</p>
                             </div>
                             <div className="bg-purple-50 p-4 rounded-lg">
                                 <h3 className="font-semibold text-purple-900">Average Score</h3>
-                                <p className="text-2xl font-bold text-purple-600">
-                                    {quizAttempts.length > 0
-                                        ? Math.round(quizAttempts.reduce((acc, attempt) => acc + attempt.score, 0) / quizAttempts.length)
-                                        : 0}%
-                                </p>
+                                <p className="text-2xl font-bold text-purple-600">N/A</p>
+                                <p className="text-xs text-gray-500 mt-1">No quiz data available</p>
                             </div>
                         </div>
                     )}
 
                     {activeTab === 'submissions' && (
                         <div className="space-y-4">
-                            {submissions.length === 0 ? (
-                                <p className="text-gray-500 text-center py-8">No submissions found</p>
-                            ) : (
-                                submissions.map((submission) => (
-                                    <div key={submission.id} className="border border-gray-200 rounded-lg p-4">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <h4 className="font-medium">Assignment #{submission.assignmentId}</h4>
-                                                <p className="text-sm text-gray-600">{submission.description}</p>
-                                                <p className="text-xs text-gray-500 mt-1">
-                                                    Submitted: {new Date(submission.submittedAt).toLocaleDateString()}
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                {submission.marks !== null ? (
-                                                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                                                        {submission.marks} marks
-                                                    </span>
-                                                ) : (
-                                                    <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-sm">
-                                                        Pending
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                        {submission.feedback && (
-                                            <div className="mt-2 p-2 bg-gray-50 rounded">
-                                                <p className="text-sm text-gray-700">Feedback: {submission.feedback}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                ))
-                            )}
+                            <div className="text-center py-8">
+                                <FileText className="mx-auto h-12 w-12 text-gray-400" />
+                                <p className="text-gray-500 mt-2">Submission service not active</p>
+                                <p className="text-sm text-gray-400">Start submission-service to see student submissions</p>
+                            </div>
                         </div>
                     )}
 
                     {activeTab === 'quizzes' && (
                         <div className="space-y-4">
-                            {quizAttempts.length === 0 ? (
-                                <p className="text-gray-500 text-center py-8">No quiz attempts found</p>
-                            ) : (
-                                quizAttempts.map((attempt) => (
-                                    <div key={attempt.id} className="border border-gray-200 rounded-lg p-4">
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <h4 className="font-medium">Quiz #{attempt.quizId}</h4>
-                                                <p className="text-sm text-gray-600">
-                                                    {attempt.correctAnswers} out of {attempt.totalQuestions} correct
-                                                </p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${attempt.score >= 80 ? 'bg-green-100 text-green-800' :
-                                                        attempt.score >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                                                            'bg-red-100 text-red-800'
-                                                    }`}>
-                                                    {attempt.score}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))
-                            )}
+                            <div className="text-center py-8">
+                                <Trophy className="mx-auto h-12 w-12 text-gray-400" />
+                                <p className="text-gray-500 mt-2">Quiz service not active</p>
+                                <p className="text-sm text-gray-400">Start quiz-service to see quiz attempts</p>
+                            </div>
                         </div>
                     )}
                 </div>

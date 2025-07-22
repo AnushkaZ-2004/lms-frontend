@@ -12,18 +12,27 @@ const API_BASE_URLS = {
     MATERIALS: 'http://localhost:8089/api/materials'
 };
 
-// Create axios instance with session support
 const createApiInstance = (baseURL) => {
     const instance = axios.create({
         baseURL,
         headers: {
             'Content-Type': 'application/json',
         },
-        withCredentials: true, // Important for session-based auth
+        withCredentials: true,
+        timeout: 10000,
     });
 
-    // For session-based auth, we don't need JWT token interceptor
-    // but we can add session handling if needed
+    instance.interceptors.response.use(
+        (response) => response,
+        (error) => {
+            if (error.response?.status === 401) {
+                localStorage.removeItem('user');
+                localStorage.removeItem('authToken');
+                window.location.href = '/login';
+            }
+            return Promise.reject(error);
+        }
+    );
 
     return instance;
 };

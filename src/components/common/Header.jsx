@@ -9,7 +9,7 @@ const Header = () => {
         <header className="bg-white shadow-sm border-b border-gray-200 fixed w-full top-0 z-40">
             <div className="px-6 py-4 flex justify-between items-center">
                 <div className="flex items-center">
-                    <h1 className="text-2xl font-bold text-primary-700">LMS Admin</h1>
+                    <h1 className="text-2xl font-bold text-primary-700">Admin Panel</h1>
                 </div>
 
                 <div className="flex items-center space-x-4">
