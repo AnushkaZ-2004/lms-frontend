@@ -21,7 +21,8 @@ const Sidebar = () => {
         { icon: FileText, label: 'Assignments', path: '/assignments' },
         { icon: HelpCircle, label: 'Quizzes', path: '/quizzes' },
         { icon: ClipboardCheck, label: 'Submissions', path: '/submissions' },
-        { icon: Send, label: 'Announcements', path: '/announcements' }
+        { icon: Send, label: 'Announcements', path: '/announcements' },
+        { icon: Settings, label: 'Settings', path: '/settings' }
     ];
 
     return (
