@@ -22,9 +22,27 @@ const createApiInstance = (baseURL) => {
         timeout: 10000,
     });
 
-    instance.interceptors.response.use(
-        (response) => response,
+    // Request interceptor
+    instance.interceptors.request.use(
+        (config) => {
+            console.log(`🔄 ${config.method?.toUpperCase()} ${config.url}`);
+            return config;
+        },
         (error) => {
+            console.error('❌ Request error:', error);
+            return Promise.reject(error);
+        }
+    );
+
+    // Response interceptor
+    instance.interceptors.response.use(
+        (response) => {
+            console.log(`✅ ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`);
+            return response;
+        },
+        (error) => {
+            console.error(`❌ ${error.config?.method?.toUpperCase()} ${error.config?.url} - ${error.response?.status || 'Network Error'}`);
+
             if (error.response?.status === 401) {
                 localStorage.removeItem('user');
                 localStorage.removeItem('authToken');

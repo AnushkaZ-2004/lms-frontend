@@ -13,7 +13,6 @@ code {
     monospace;
 }
 
-/* Basic utility classes to replace Tailwind temporarily */
 .bg-white {
   background-color: white;
 }
