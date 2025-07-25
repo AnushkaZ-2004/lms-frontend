@@ -1,38 +1,19 @@
-import { apiInstances } from './api';
+import BaseService from './BaseService';
 
-export const studentService = {
-    getAllStudents: async (page = 0, size = 10, search = '') => {
-        const response = await apiInstances.students.get(`/?page=${page}&size=${size}&search=${search}`);
-        return response.data;
-    },
-
-    createStudent: async (studentData) => {
-        const response = await apiInstances.students.post('/', studentData);
-        return response.data;
-    },
-
-    updateStudent: async (id, studentData) => {
-        const response = await apiInstances.students.put(`/${id}`, studentData);
-        return response.data;
-    },
-
-    deleteStudent: async (id) => {
-        const response = await apiInstances.students.delete(`/${id}`);
-        return response.data;
-    },
-
-    getStudentById: async (id) => {
-        const response = await apiInstances.students.get(`/${id}`);
-        return response.data;
-    },
-
-    // Health check
-    checkHealth: async () => {
-        try {
-            const response = await apiInstances.students.get('/health');
-            return response.data;
-        } catch (error) {
-            return { status: 'DOWN', error: error.message };
-        }
+class StudentService extends BaseService {
+    constructor() {
+        super('http://localhost:8082/api');
     }
-};
+
+    getStudents = () => this.get('/students');
+
+    getStudent = (id) => this.get(`/students/${id}`);
+
+    createStudent = (data) => this.post('/students', data);
+
+    updateStudent = (id, data) => this.put(`/students/${id}`, data);
+
+    deleteStudent = (id) => this.delete(`/students/${id}`);
+}
+
+export default new StudentService();
