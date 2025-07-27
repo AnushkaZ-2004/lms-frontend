@@ -585,6 +585,106 @@ class APIService {
             };
         }
     }
+
+    // Health Check Utility - Add this to your APIService.js
+
+    // Add these methods to your APIService class for better health checking
+
+    async checkServiceHealth(serviceName, port, endpoint = '/actuator/health') {
+        try {
+            const response = await fetch(`http://localhost:${port}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 5000
+            });
+
+            return {
+                service: serviceName,
+                status: response.ok ? 'UP' : 'DOWN',
+                statusCode: response.status,
+                responseTime: response.headers.get('X-Response-Time') || 'N/A'
+            };
+        } catch (error) {
+            return {
+                service: serviceName,
+                status: 'DOWN',
+                error: error.message,
+                statusCode: 0
+            };
+        }
+    }
+
+    async getAllServicesHealth() {
+        const services = [
+            { name: 'Auth Service', port: 8081 },
+            { name: 'Student Service', port: 8082 },
+            { name: 'Lecturer Service', port: 8083 },
+            { name: 'Course Service', port: 8084 },
+            { name: 'Assignment Service', port: 8085 },
+            { name: 'Submission Service', port: 8086 },
+            { name: 'Announcement Service', port: 8087 },
+            { name: 'Quiz Service', port: 8088 },
+            { name: 'Material Service', port: 8089 }
+        ];
+
+        const healthChecks = await Promise.all(
+            services.map(service =>
+                this.checkServiceHealth(service.name, service.port)
+            )
+        );
+
+        return healthChecks;
+    }
+
+    // Get real-time system metrics
+    async getSystemMetrics() {
+        try {
+            const [
+                studentsData,
+                lecturersData,
+                coursesData,
+                assignmentsData,
+                submissionsData,
+                announcementsData,
+                quizzesData
+            ] = await Promise.all([
+                this.getStudents(0, 1).catch(() => ({ totalElements: 0 })),
+                this.getLecturers().catch(() => []),
+                this.getCourses().catch(() => []),
+                this.getAssignments().catch(() => []),
+                this.getSubmissions().catch(() => []),
+                this.getAnnouncements().catch(() => []),
+                this.getQuizzes().catch(() => [])
+            ]);
+
+            return {
+                totalStudents: studentsData.totalElements || studentsData.length || 0,
+                totalLecturers: lecturersData.length || 0,
+                totalCourses: coursesData.length || 0,
+                totalAssignments: assignmentsData.length || 0,
+                totalSubmissions: submissionsData.length || 0,
+                totalAnnouncements: announcementsData.length || 0,
+                totalQuizzes: quizzesData.length || 0,
+                lastUpdated: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error getting system metrics:', error);
+            return {
+                totalStudents: 0,
+                totalLecturers: 0,
+                totalCourses: 0,
+                totalAssignments: 0,
+                totalSubmissions: 0,
+                totalAnnouncements: 0,
+                totalQuizzes: 0,
+                error: error.message,
+                lastUpdated: new Date().toISOString()
+            };
+        }
+    }
 }
 
 export default APIService;
