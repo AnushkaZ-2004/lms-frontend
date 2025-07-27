@@ -486,6 +486,8 @@ class APIService {
     }
 
     // Announcement Service
+
+    // Announcement Service - FIXED TO MATCH YOUR BACKEND
     async getAnnouncements() {
         try {
             return await this.request('announcement', '/api/announcements');
@@ -495,12 +497,57 @@ class APIService {
         }
     }
 
-    async createAnnouncement(announcement) {
-        return this.request('announcement', '/api/announcements', {
-            method: 'POST',
-            body: JSON.stringify(announcement)
-        });
+    async getGlobalAnnouncements() {
+        try {
+            return await this.request('announcement', '/api/announcements/global');
+        } catch (error) {
+            console.error('Error fetching global announcements:', error);
+            return [];
+        }
     }
+
+    async getCourseAnnouncements(courseId) {
+        try {
+            return await this.request('announcement', `/api/announcements/course/${courseId}`);
+        } catch (error) {
+            console.error('Error fetching course announcements:', error);
+            return [];
+        }
+    }
+
+    async createAnnouncement(announcement) {
+        try {
+            // Ensure courseId is properly formatted for your backend
+            const formattedAnnouncement = {
+                ...announcement,
+                courseId: announcement.courseId || null, // Convert empty string to null
+                title: announcement.title?.trim(),
+                message: announcement.message?.trim()
+            };
+
+            console.log('Creating announcement:', formattedAnnouncement);
+
+            return await this.request('announcement', '/api/announcements', {
+                method: 'POST',
+                body: JSON.stringify(formattedAnnouncement)
+            });
+        } catch (error) {
+            console.error('Error creating announcement:', error);
+            throw error;
+        }
+    }
+
+    async deleteAnnouncement(id) {
+        try {
+            return await this.request('announcement', `/api/announcements/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (error) {
+            console.error('Error deleting announcement:', error);
+            throw error;
+        }
+    }
+
 
     // Dashboard Stats with enhanced quiz data
     async getDashboardStats() {

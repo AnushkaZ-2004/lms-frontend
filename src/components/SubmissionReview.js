@@ -146,13 +146,7 @@ function SubmissionReview({ api }) {
             <div className="management-header">
                 <h1>Submission Review</h1>
                 <div className="header-actions">
-                    <button
-                        className="btn btn-secondary"
-                        onClick={loadData}
-                        title="Refresh List"
-                    >
-                        🔄 Refresh
-                    </button>
+
                     <span className="submission-count">
                         Total: {filteredSubmissions.length} submissions
                     </span>
