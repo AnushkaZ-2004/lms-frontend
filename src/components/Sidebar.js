@@ -2,15 +2,15 @@ import React from 'react';
 
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard', icon: '🏠' },
-        { id: 'students', label: 'Students', icon: '👨‍🎓' },
-        { id: 'lecturers', label: 'Lecturers', icon: '🧑‍🏫' },
-        { id: 'courses', label: 'Courses', icon: '📚' },
-        { id: 'assignments', label: 'Assignments', icon: '📝' },
-        { id: 'quizzes', label: 'Quizzes', icon: '🧪' },
-        { id: 'submissions', label: 'Submissions', icon: '📤' },
-        { id: 'announcements', label: 'Announcements', icon: '📨' },
-        { id: 'settings', label: 'Settings', icon: '⚙️' }
+        { id: 'dashboard', label: 'Dashboard', icon: '' },
+        { id: 'students', label: 'Students', icon: '' },
+        { id: 'lecturers', label: 'Lecturers', icon: '' },
+        { id: 'courses', label: 'Courses', icon: '' },
+        { id: 'assignments', label: 'Assignments', icon: '' },
+        { id: 'quizzes', label: 'Quizzes', icon: '' },
+        { id: 'submissions', label: 'Submissions', icon: '' },
+        { id: 'announcements', label: 'Announcements', icon: '' },
+        { id: 'settings', label: 'Settings', icon: '' }
     ];
 
     return (
