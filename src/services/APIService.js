@@ -1,4 +1,4 @@
-// Updated API Service to match your backend
+// Enhanced API Service with Complete Quiz Management
 class APIService {
     constructor() {
         this.baseURLs = {
@@ -12,6 +12,7 @@ class APIService {
             quiz: 'http://localhost:8088',
             material: 'http://localhost:8089'
         };
+        this.token = localStorage.getItem('token');
     }
 
     async request(service, endpoint, options = {}) {
@@ -19,19 +20,18 @@ class APIService {
         const config = {
             headers: {
                 'Content-Type': 'application/json',
+                ...(this.token && { 'Authorization': `Bearer ${this.token}` }),
                 ...options.headers
             },
-            credentials: 'include', // Important for session cookies
             ...options
         };
 
         const response = await fetch(url, config);
-
         if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
+        // Check if response has content before parsing JSON
         const contentType = response.headers.get('content-type');
         const contentLength = response.headers.get('content-length');
 
@@ -46,83 +46,47 @@ class APIService {
         return response.json();
     }
 
-    // Auth Service - Updated to match your backend
+    // Auth Service
     async login(email, password) {
-        try {
-            const result = await this.request('auth', '/api/auth/login', {
-                method: 'POST',
-                body: JSON.stringify({ email, password })
-            });
-
-            if (result.success && result.user) {
-                // Store user data in localStorage
-                localStorage.setItem('user', JSON.stringify(result.user));
-                localStorage.setItem('isAuthenticated', 'true');
-                return result;
-            } else {
-                throw new Error(result.message || 'Login failed');
-            }
-        } catch (error) {
-            console.error('Login error:', error);
-            throw error;
+        const result = await this.request('auth', '/api/auth/login', {
+            method: 'POST',
+            body: JSON.stringify({ email, password })
+        });
+        if (result.token) {
+            this.token = result.token;
+            localStorage.setItem('token', result.token);
+            localStorage.setItem('user', JSON.stringify(result.user));
         }
-    }
-
-    async register(fullName, email, password, role) {
-        try {
-            const result = await this.request('auth', '/api/auth/register', {
-                method: 'POST',
-                body: JSON.stringify({ fullName, email, password, role })
-            });
-            return result;
-        } catch (error) {
-            console.error('Registration error:', error);
-            throw error;
-        }
-    }
-
-    async getCurrentUser() {
-        try {
-            const result = await this.request('auth', '/api/auth/me');
-            return result;
-        } catch (error) {
-            console.error('Get current user error:', error);
-            // If session expired, clear local storage
-            localStorage.removeItem('user');
-            localStorage.removeItem('isAuthenticated');
-            throw error;
-        }
+        return result;
     }
 
     async logout() {
-        try {
-            await this.request('auth', '/api/auth/logout', {
-                method: 'POST'
-            });
-            localStorage.removeItem('user');
-            localStorage.removeItem('isAuthenticated');
-            return { success: true };
-        } catch (error) {
-            console.error('Logout error:', error);
-            // Even if logout fails, clear local storage
-            localStorage.removeItem('user');
-            localStorage.removeItem('isAuthenticated');
-            throw error;
-        }
+        this.token = null;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
     }
 
-    // Student Services
-    async getStudents(page = 0, size = 100) {
+    // Student Service
+    async getStudents(page = 0, size = 10) {
+        const params = new URLSearchParams({
+            page: page.toString(),
+            size: size.toString()
+        });
+
+        const endpoint = `/api/students?${params.toString()}`;
+
         try {
-            return await this.request('student', `/api/students?page=${page}&size=${size}`);
+            return await this.request('student', endpoint);
         } catch (error) {
             console.error('Error fetching students:', error);
-            return { content: [], totalElements: 0 };
+            return {
+                content: [],
+                totalElements: 0,
+                totalPages: 0,
+                size: size,
+                number: page
+            };
         }
-    }
-
-    async getStudentById(id) {
-        return this.request('student', `/api/students/${id}`);
     }
 
     async createStudent(student) {
@@ -145,7 +109,7 @@ class APIService {
         });
     }
 
-    // Lecturer Services
+    // Lecturer Service
     async getLecturers() {
         try {
             return await this.request('lecturer', '/api/lecturers');
@@ -153,10 +117,6 @@ class APIService {
             console.error('Error fetching lecturers:', error);
             return [];
         }
-    }
-
-    async getLecturerById(id) {
-        return this.request('lecturer', `/api/lecturers/${id}`);
     }
 
     async createLecturer(lecturer) {
@@ -179,22 +139,12 @@ class APIService {
         });
     }
 
-    // Course Services
+    // Course Service
     async getCourses() {
         try {
             return await this.request('course', '/api/courses');
         } catch (error) {
             console.error('Error fetching courses:', error);
-            return [];
-        }
-    }
-
-    async getCoursesByLecturer(lecturerId) {
-        try {
-            const courses = await this.getCourses();
-            return courses.filter(course => course.lecturerId === lecturerId);
-        } catch (error) {
-            console.error('Error fetching lecturer courses:', error);
             return [];
         }
     }
@@ -219,9 +169,18 @@ class APIService {
         });
     }
 
-    // Assignment Services
+    // Assignment Service
     async getAssignments(courseId = null) {
-        const endpoint = courseId ? `/api/assignments?courseId=${courseId}` : '/api/assignments';
+        const params = new URLSearchParams();
+
+        if (courseId) {
+            params.append('courseId', courseId.toString());
+        }
+
+        const endpoint = params.toString()
+            ? `/api/assignments?${params.toString()}`
+            : '/api/assignments';
+
         try {
             return await this.request('assignment', endpoint);
         } catch (error) {
@@ -250,19 +209,18 @@ class APIService {
         });
     }
 
-    // Quiz Services
-    async getAllQuizzes() {
+    // ===== ENHANCED QUIZ SERVICE ===== //
+
+    // Quiz Management
+    async createQuiz(quiz) {
         try {
-            const courses = await this.getCourses();
-            const allQuizzes = [];
-            for (const course of courses) {
-                const courseQuizzes = await this.getQuizzesByCourse(course.id);
-                allQuizzes.push(...courseQuizzes);
-            }
-            return allQuizzes;
+            return await this.request('quiz', '/api/quizzes', {
+                method: 'POST',
+                body: JSON.stringify(quiz)
+            });
         } catch (error) {
-            console.error('Error fetching all quizzes:', error);
-            return [];
+            console.error('Error creating quiz:', error);
+            throw error;
         }
     }
 
@@ -275,24 +233,60 @@ class APIService {
         }
     }
 
-    async createQuiz(quiz) {
-        return this.request('quiz', '/api/quizzes', {
-            method: 'POST',
-            body: JSON.stringify(quiz)
-        });
+    // Get all quizzes (you might need to add this endpoint to your backend)
+    async getAllQuizzes() {
+        try {
+            // If your backend doesn't have a general endpoint, we'll fetch by all courses
+            const courses = await this.getCourses();
+            const allQuizzes = [];
+
+            for (const course of courses) {
+                const courseQuizzes = await this.getQuizzesByCourse(course.id);
+                allQuizzes.push(...courseQuizzes);
+            }
+
+            return allQuizzes;
+        } catch (error) {
+            console.error('Error fetching all quizzes:', error);
+            return [];
+        }
     }
 
+    // Note: You might need to add these endpoints to your backend
     async updateQuiz(id, quiz) {
-        return this.request('quiz', `/api/quizzes/${id}`, {
-            method: 'PUT',
-            body: JSON.stringify(quiz)
-        });
+        try {
+            return await this.request('quiz', `/api/quizzes/${id}`, {
+                method: 'PUT',
+                body: JSON.stringify(quiz)
+            });
+        } catch (error) {
+            console.error('Error updating quiz:', error);
+            throw error;
+        }
     }
 
     async deleteQuiz(id) {
-        return this.request('quiz', `/api/quizzes/${id}`, {
-            method: 'DELETE'
-        });
+        try {
+            return await this.request('quiz', `/api/quizzes/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (error) {
+            console.error('Error deleting quiz:', error);
+            throw error;
+        }
+    }
+
+    // Question Management
+    async createQuestion(question) {
+        try {
+            return await this.request('quiz', '/api/quizzes/questions', {
+                method: 'POST',
+                body: JSON.stringify(question)
+            });
+        } catch (error) {
+            console.error('Error creating question:', error);
+            throw error;
+        }
     }
 
     async getQuestions(quizId) {
@@ -304,30 +298,35 @@ class APIService {
         }
     }
 
-    async createQuestion(question) {
-        return this.request('quiz', '/api/quizzes/questions', {
-            method: 'POST',
-            body: JSON.stringify(question)
-        });
-    }
-
+    // Note: You might need to add this endpoint to your backend
     async deleteQuestion(id) {
-        return this.request('quiz', `/api/quizzes/questions/${id}`, {
-            method: 'DELETE'
-        });
+        try {
+            return await this.request('quiz', `/api/quizzes/questions/${id}`, {
+                method: 'DELETE'
+            });
+        } catch (error) {
+            console.error('Error deleting question:', error);
+            throw error;
+        }
     }
 
+    // Attempt Management
     async submitQuizAttempt(quizId, studentId, answers) {
-        const submissionData = {
-            quizId: quizId,
-            studentId: studentId,
-            answers: answers
-        };
+        try {
+            const submissionData = {
+                quizId: quizId,
+                studentId: studentId,
+                answers: answers // Map<Long, String> - questionId -> answer
+            };
 
-        return this.request('quiz', `/api/quizzes/${quizId}/submit/${studentId}`, {
-            method: 'POST',
-            body: JSON.stringify(submissionData)
-        });
+            return await this.request('quiz', `/api/quizzes/${quizId}/submit/${studentId}`, {
+                method: 'POST',
+                body: JSON.stringify(submissionData)
+            });
+        } catch (error) {
+            console.error('Error submitting quiz attempt:', error);
+            throw error;
+        }
     }
 
     async getAttemptsByStudent(studentId) {
@@ -339,15 +338,19 @@ class APIService {
         }
     }
 
+    // Get all attempts (you might need to add this endpoint to your backend)
     async getAllAttempts() {
         try {
+            // If your backend doesn't have a general endpoint, we'll fetch by all students
             const students = await this.getStudents(0, 1000);
             const studentList = students.content || students || [];
             const allAttempts = [];
+
             for (const student of studentList) {
                 const studentAttempts = await this.getAttemptsByStudent(student.id);
                 allAttempts.push(...studentAttempts);
             }
+
             return allAttempts;
         } catch (error) {
             console.error('Error fetching all attempts:', error);
@@ -355,11 +358,14 @@ class APIService {
         }
     }
 
-    // Submission Services
-    async getSubmissions(assignmentId = null, studentId = null) {
+    // Submission Service
+
+    async getSubmissions(assignmentId = null) {
         let endpoint = '/api/submissions';
-        if (assignmentId) endpoint = `/api/submissions/assignment/${assignmentId}`;
-        if (studentId) endpoint = `/api/submissions/student/${studentId}`;
+
+        if (assignmentId) {
+            endpoint = `/api/submissions/assignment/${assignmentId}`;
+        }
 
         try {
             return await this.request('submission', endpoint);
@@ -369,8 +375,36 @@ class APIService {
         }
     }
 
+    async getSubmissionById(id) {
+        try {
+            return await this.request('submission', `/api/submissions/${id}`);
+        } catch (error) {
+            console.error('Error fetching submission:', error);
+            return null;
+        }
+    }
+
+    async getSubmissionsByStudent(studentId) {
+        try {
+            return await this.request('submission', `/api/submissions/student/${studentId}`);
+        } catch (error) {
+            console.error('Error fetching student submissions:', error);
+            return [];
+        }
+    }
+
+    async getSubmissionsByAssignment(assignmentId) {
+        try {
+            return await this.request('submission', `/api/submissions/assignment/${assignmentId}`);
+        } catch (error) {
+            console.error('Error fetching assignment submissions:', error);
+            return [];
+        }
+    }
+
     async createSubmission(submission) {
         try {
+            // Ensure submittedAt is set if not provided
             if (!submission.submittedAt) {
                 submission.submittedAt = new Date().toISOString();
             }
@@ -397,6 +431,23 @@ class APIService {
         }
     }
 
+    // Alternative method using query parameters (if you prefer the /review endpoint)
+    async reviewSubmission(id, marks, feedback) {
+        try {
+            const params = new URLSearchParams({
+                marks: marks.toString(),
+                feedback: feedback || ''
+            });
+
+            return await this.request('submission', `/api/submissions/${id}/review?${params.toString()}`, {
+                method: 'PUT'
+            });
+        } catch (error) {
+            console.error('Error reviewing submission:', error);
+            throw error;
+        }
+    }
+
     async deleteSubmission(id) {
         try {
             return await this.request('submission', `/api/submissions/${id}`, {
@@ -408,7 +459,35 @@ class APIService {
         }
     }
 
-    // Announcement Services
+    // Get pending submissions (not reviewed)
+    async getPendingSubmissions() {
+        try {
+            const allSubmissions = await this.getSubmissions();
+            return allSubmissions.filter(submission =>
+                submission.marks === null || submission.marks === undefined
+            );
+        } catch (error) {
+            console.error('Error fetching pending submissions:', error);
+            return [];
+        }
+    }
+
+    // Get reviewed submissions
+    async getReviewedSubmissions() {
+        try {
+            const allSubmissions = await this.getSubmissions();
+            return allSubmissions.filter(submission =>
+                submission.marks !== null && submission.marks !== undefined
+            );
+        } catch (error) {
+            console.error('Error fetching reviewed submissions:', error);
+            return [];
+        }
+    }
+
+    // Announcement Service
+
+    // Announcement Service - FIXED TO MATCH YOUR BACKEND
     async getAnnouncements() {
         try {
             return await this.request('announcement', '/api/announcements');
@@ -438,12 +517,15 @@ class APIService {
 
     async createAnnouncement(announcement) {
         try {
+            // Ensure courseId is properly formatted for your backend
             const formattedAnnouncement = {
                 ...announcement,
-                courseId: announcement.courseId || null,
+                courseId: announcement.courseId || null, // Convert empty string to null
                 title: announcement.title?.trim(),
                 message: announcement.message?.trim()
             };
+
+            console.log('Creating announcement:', formattedAnnouncement);
 
             return await this.request('announcement', '/api/announcements', {
                 method: 'POST',
@@ -466,31 +548,8 @@ class APIService {
         }
     }
 
-    // Material Services
-    async getMaterials(courseId = null) {
-        const endpoint = courseId ? `/api/materials/course/${courseId}` : '/api/materials';
-        try {
-            return await this.request('material', endpoint);
-        } catch (error) {
-            console.error('Error fetching materials:', error);
-            return [];
-        }
-    }
 
-    async createMaterial(material) {
-        return this.request('material', '/api/materials', {
-            method: 'POST',
-            body: JSON.stringify(material)
-        });
-    }
-
-    async deleteMaterial(id) {
-        return this.request('material', `/api/materials/${id}`, {
-            method: 'DELETE'
-        });
-    }
-
-    // Dashboard Stats
+    // Dashboard Stats with enhanced quiz data
     async getDashboardStats() {
         try {
             const [students, lecturers, courses, submissions, quizzes, attempts] = await Promise.all([
@@ -523,6 +582,106 @@ class APIService {
                 totalQuizzes: 0,
                 totalAttempts: 0,
                 averageQuizScore: 0
+            };
+        }
+    }
+
+    // Health Check Utility - Add this to your APIService.js
+
+    // Add these methods to your APIService class for better health checking
+
+    async checkServiceHealth(serviceName, port, endpoint = '/actuator/health') {
+        try {
+            const response = await fetch(`http://localhost:${port}${endpoint}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${this.token}`,
+                    'Content-Type': 'application/json'
+                },
+                timeout: 5000
+            });
+
+            return {
+                service: serviceName,
+                status: response.ok ? 'UP' : 'DOWN',
+                statusCode: response.status,
+                responseTime: response.headers.get('X-Response-Time') || 'N/A'
+            };
+        } catch (error) {
+            return {
+                service: serviceName,
+                status: 'DOWN',
+                error: error.message,
+                statusCode: 0
+            };
+        }
+    }
+
+    async getAllServicesHealth() {
+        const services = [
+            { name: 'Auth Service', port: 8081 },
+            { name: 'Student Service', port: 8082 },
+            { name: 'Lecturer Service', port: 8083 },
+            { name: 'Course Service', port: 8084 },
+            { name: 'Assignment Service', port: 8085 },
+            { name: 'Submission Service', port: 8086 },
+            { name: 'Announcement Service', port: 8087 },
+            { name: 'Quiz Service', port: 8088 },
+            { name: 'Material Service', port: 8089 }
+        ];
+
+        const healthChecks = await Promise.all(
+            services.map(service =>
+                this.checkServiceHealth(service.name, service.port)
+            )
+        );
+
+        return healthChecks;
+    }
+
+    // Get real-time system metrics
+    async getSystemMetrics() {
+        try {
+            const [
+                studentsData,
+                lecturersData,
+                coursesData,
+                assignmentsData,
+                submissionsData,
+                announcementsData,
+                quizzesData
+            ] = await Promise.all([
+                this.getStudents(0, 1).catch(() => ({ totalElements: 0 })),
+                this.getLecturers().catch(() => []),
+                this.getCourses().catch(() => []),
+                this.getAssignments().catch(() => []),
+                this.getSubmissions().catch(() => []),
+                this.getAnnouncements().catch(() => []),
+                this.getQuizzes().catch(() => [])
+            ]);
+
+            return {
+                totalStudents: studentsData.totalElements || studentsData.length || 0,
+                totalLecturers: lecturersData.length || 0,
+                totalCourses: coursesData.length || 0,
+                totalAssignments: assignmentsData.length || 0,
+                totalSubmissions: submissionsData.length || 0,
+                totalAnnouncements: announcementsData.length || 0,
+                totalQuizzes: quizzesData.length || 0,
+                lastUpdated: new Date().toISOString()
+            };
+        } catch (error) {
+            console.error('Error getting system metrics:', error);
+            return {
+                totalStudents: 0,
+                totalLecturers: 0,
+                totalCourses: 0,
+                totalAssignments: 0,
+                totalSubmissions: 0,
+                totalAnnouncements: 0,
+                totalQuizzes: 0,
+                error: error.message,
+                lastUpdated: new Date().toISOString()
             };
         }
     }
